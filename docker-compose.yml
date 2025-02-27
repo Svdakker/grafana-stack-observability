@@ -1,0 +1,62 @@
+services:
+  loki:
+    container_name: loki
+    image: grafana/loki:latest
+    ports:
+      - "3100:3100"
+    networks:
+      - alloy
+    command: -config.file=/etc/loki/local-config.yaml
+
+  prometheus:
+    container_name: prometheus
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    networks:
+      - alloy
+    command: 
+      - --web.enable-remote-write-receiver
+      - --config.file=/etc/prometheus/prometheus.yml
+
+  pyroscope:
+    container_name: pyroscope
+    image: grafana/pyroscope:latest
+    ports:
+      - "4040:4040"
+    networks:
+      - alloy
+
+  tempo:
+    container_name: tempo
+    image: grafana/tempo:latest
+    ports:
+      - "3200:3200"
+    command: 
+      - "--config.file=/etc/tempo.yml"
+    networks:
+      - alloy
+
+  grafana:
+    container_name: grafana
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_INSTALL_PLUGINS=grafana-pyroscope-app
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    networks:
+      - alloy
+    depends_on:
+      - prometheus
+
+networks:
+  alloy:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.100.0/24
