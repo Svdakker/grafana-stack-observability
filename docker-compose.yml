@@ -1,4 +1,18 @@
-services:
+services: 
+  alloy:
+    container_name: alloy
+    image: grafana/alloy:latest 
+    volumes: 
+      - ./alloy/config.alloy:/etc/alloy/config.alloy:ro 
+    ports:
+      - "12345:12345"
+    networks:
+      - alloy
+    command: 
+      - "run"
+      - "--server.http.listen-addr=0.0.0.0:12345"
+      - "/etc/alloy/config.alloy"
+
   loki:
     container_name: loki
     image: grafana/loki:latest
@@ -24,16 +38,22 @@ services:
     image: grafana/pyroscope:latest
     ports:
       - "4040:4040"
+    volumes:
+      - ./pyroscope/config/pyroscope.yml:/etc/pyroscope/pyroscope.yml:ro
     networks:
       - alloy
+    command: 
+      - "--config.file=/etc/pyroscope/pyroscope.yml"
 
   tempo:
     container_name: tempo
     image: grafana/tempo:latest
     ports:
       - "3200:3200"
+    volumes:
+      - ./tempo/config/tempo.yml:/etc/tempo/tempo.yml:ro
     command: 
-      - "--config.file=/etc/tempo.yml"
+      - "--config.file=/etc/tempo/tempo.yml"
     networks:
       - alloy
 
