@@ -36,8 +36,9 @@ services:
     networks:
       - alloy
     command: 
-      - --web.enable-remote-write-receiver
-      - --config.file=/etc/prometheus/prometheus.yml
+      - "--web.enable-remote-write-receiver"
+      - "--log.level=debug"
+      - "--config.file=/etc/prometheus/prometheus.yml"
 
   pyroscope:
     container_name: pyroscope

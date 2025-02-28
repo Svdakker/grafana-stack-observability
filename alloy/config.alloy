@@ -1,3 +1,45 @@
+logging {
+  level  = "debug"
+  format = "logfmt"
+}
+
+prometheus.exporter.unix "local_system" { }
+
+prometheus.scrape "scrape_local_system" {
+    scrape_interval = "15s"
+
+    targets = prometheus.exporter.unix.local_system.targets
+    forward_to = [prometheus.relabel.filter_system_metrics.receiver]
+}
+
+prometheus.relabel "filter_system_metrics" {
+    rule {
+        action = "drop"
+        source_labels = ["env"]
+        regex = "dev"
+    }
+
+    forward_to = [prometheus.remote_write.local.receiver]
+}
+
+prometheus.scrape "scrape_service_metrics" {
+    scrape_interval = "10s"
+
+    targets = [
+        {
+            __address__ = "loki:3100",
+        },
+        {
+            __address__ = "alloy:12345",
+        },
+        {
+            __address__ = "prometheus:9090",
+        },
+    ]
+
+    forward_to = [prometheus.remote_write.local.receiver]
+} 
+
 // Receive OpenTelemetry data via gRPC/HTTP
 otelcol.receiver.otlp "default" {
     http {}
@@ -5,6 +47,7 @@ otelcol.receiver.otlp "default" {
 
     output {
         logs = [otelcol.processor.batch.default.input]
+        metrics = [otelcol.processor.batch.default.input]
     }
 }
 
@@ -12,12 +55,25 @@ otelcol.receiver.otlp "default" {
 otelcol.processor.batch "default" { 
     output {
         logs = [otelcol.exporter.otlphttp.default.input]
+        metrics = [otelcol.exporter.prometheus.default.input]
     }
 }
 
-// OTLP HTTP exporter
+// OTLP HTTP exporter for logs (Loki)
 otelcol.exporter.otlphttp "default" {
     client {
         endpoint = "http://loki:3100/otlp"
+    }
+}
+
+// Prometheus exporter for metrics
+otelcol.exporter.prometheus "default" {
+    forward_to = [prometheus.remote_write.local.receiver]
+}
+
+// Write metrics to locally hosted Prometheus
+prometheus.remote_write "local" {
+    endpoint {
+        url = "http://prometheus:9090/api/v1/write"
     }
 }
