@@ -1,0 +1,23 @@
+// Receive OpenTelemetry data via gRPC/HTTP
+otelcol.receiver.otlp "default" {
+    http {}
+    grpc {}
+
+    output {
+        logs = [otelcol.processor.batch.default.input]
+    }
+}
+
+// Batch processor for OpenTelemetry data
+otelcol.processor.batch "default" { 
+    output {
+        logs = [otelcol.exporter.otlphttp.default.input]
+    }
+}
+
+// OTLP HTTP exporter
+otelcol.exporter.otlphttp "default" {
+    client {
+        endpoint = "http://loki:3100/otlp"
+    }
+}
